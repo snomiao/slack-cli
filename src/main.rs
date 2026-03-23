@@ -23,6 +23,12 @@ struct Cli {
 enum Cmd {
     /// Show recent messages across joined channels
     Msgs,
+    /// Show activity feed (mentions, @channel, @here) like Slack's Activity tab
+    News {
+        /// Max items to show
+        #[arg(short, long, default_value = "20")]
+        limit: usize,
+    },
     /// Search messages across workspace
     Search { query: String },
     /// Send a message to a channel or DM (requires --confirm hash)
@@ -92,6 +98,50 @@ async fn main() -> Result<()> {
                     let text = slack::resolve_mentions(&token, raw_text, &mut user_cache).await;
                     println!("  {display_name}: {text}");
                 }
+            }
+        }
+        Cmd::News { limit } => {
+            let resp = slack::search(&token, "to:me").await?;
+            let matches = resp["messages"]["matches"].as_array().cloned().unwrap_or_default();
+            let mut user_cache: HashMap<String, String> = HashMap::new();
+            let mut last_day = String::new();
+            for m in matches.iter().take(limit) {
+                let ts = m["ts"].as_str().unwrap_or("0").parse::<f64>().unwrap_or(0.0);
+                let dt = chrono::DateTime::from_timestamp(ts as i64, 0)
+                    .unwrap_or_default();
+                let now = chrono::Utc::now();
+                let today = now.date_naive();
+                let msg_day = dt.date_naive();
+                let day_label = if msg_day == today {
+                    "Today".to_string()
+                } else if msg_day == today.pred_opt().unwrap_or(today) {
+                    "Yesterday".to_string()
+                } else {
+                    msg_day.format("%A, %b %d").to_string()
+                };
+                if day_label != last_day {
+                    if !last_day.is_empty() { println!(); }
+                    println!("  {day_label}");
+                    println!("  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄");
+                    last_day = day_label;
+                }
+                let ch_name = m["channel"]["name"].as_str().unwrap_or("dm");
+                let username = m["username"].as_str().unwrap_or("?");
+                let display = if let Some(uid) = m["user"].as_str() {
+                    if !user_cache.contains_key(uid) {
+                        user_cache.insert(uid.to_string(), slack::user_name(&token, uid).await);
+                    }
+                    user_cache[uid].clone()
+                } else {
+                    username.to_string()
+                };
+                let raw_text = m["text"].as_str().unwrap_or("");
+                let text = slack::resolve_mentions(&token, raw_text, &mut user_cache).await;
+                let first_line: String = text.lines().next().unwrap_or("").chars().take(80).collect();
+                let time = dt.format("%H:%M").to_string();
+                let icon = if m["channel"]["is_im"].as_bool() == Some(true) { "💬" } else { "🔔" };
+                println!("  {icon} #{ch_name}  {time}");
+                println!("     {display}: {first_line}");
             }
         }
         Cmd::Search { query } => {

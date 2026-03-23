@@ -52,7 +52,7 @@ pub async fn history(token: &str, channel_id: &str, limit: i64) -> Result<Value>
 
 /// Search messages across workspace
 pub async fn search(token: &str, query: &str) -> Result<Value> {
-    get(token, "search.messages", &[("query", query)]).await
+    get(token, "search.messages", &[("query", query), ("sort", "timestamp"), ("sort_dir", "desc")]).await
 }
 
 /// Send a message to a channel or DM
