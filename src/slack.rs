@@ -141,6 +141,33 @@ pub async fn resolve_mentions(token: &str, text: &str, cache: &mut std::collecti
     result
 }
 
+// Resolve Slack date markup: <!date^EPOCH^{format}|fallback> → fallback or formatted date
+pub fn resolve_date_markup(text: &str) -> String {
+    let mut result = text.to_string();
+    while let Some(start) = result.find("<!date^") {
+        let Some(end) = result[start..].find('>') else { break };
+        let tag = &result[start..start + end + 1];
+        // parse: <!date^EPOCH^{format}|fallback>
+        let inner = &tag[7..tag.len() - 1]; // strip <!date^ and >
+        let parts: Vec<&str> = inner.splitn(3, |c| c == '^' || c == '|').collect();
+        let replacement = if let Some(epoch_str) = parts.first() {
+            if let Ok(epoch) = epoch_str.parse::<i64>() {
+                if let Some(dt) = chrono::DateTime::from_timestamp(epoch, 0) {
+                    dt.format("%A, %b %d, %Y").to_string()
+                } else {
+                    parts.last().unwrap_or(&"date").to_string()
+                }
+            } else {
+                parts.last().unwrap_or(&"date").to_string()
+            }
+        } else {
+            "date".to_string()
+        };
+        result = format!("{}{}{}", &result[..start], replacement, &result[start + end + 1..]);
+    }
+    result
+}
+
 /// Look up a user's display name by ID
 pub async fn user_name(token: &str, user_id: &str) -> String {
     let Ok(resp) = get(token, "users.info", &[("user", user_id)]).await else {

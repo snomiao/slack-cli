@@ -125,7 +125,19 @@ async fn main() -> Result<()> {
                     println!("  ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄");
                     last_day = day_label;
                 }
-                let ch_name = m["channel"]["name"].as_str().unwrap_or("dm");
+                let is_im = m["channel"]["is_im"].as_bool() == Some(true);
+                let ch_name_raw = m["channel"]["name"].as_str().unwrap_or("dm");
+                // For DMs, resolve UID to @display_name; for channels, use #channel-name
+                let ch_label = if is_im && ch_name_raw.starts_with('U') {
+                    if !user_cache.contains_key(ch_name_raw) {
+                        user_cache.insert(ch_name_raw.to_string(), slack::user_name(&token, ch_name_raw).await);
+                    }
+                    format!("@{}", user_cache[ch_name_raw])
+                } else if is_im {
+                    format!("@{ch_name_raw}")
+                } else {
+                    format!("#{ch_name_raw}")
+                };
                 let username = m["username"].as_str().unwrap_or("?");
                 let display = if let Some(uid) = m["user"].as_str() {
                     if !user_cache.contains_key(uid) {
@@ -137,10 +149,11 @@ async fn main() -> Result<()> {
                 };
                 let raw_text = m["text"].as_str().unwrap_or("");
                 let text = slack::resolve_mentions(&token, raw_text, &mut user_cache).await;
+                let text = slack::resolve_date_markup(&text);
                 let first_line: String = text.lines().next().unwrap_or("").chars().take(80).collect();
                 let time = dt.format("%H:%M").to_string();
-                let icon = if m["channel"]["is_im"].as_bool() == Some(true) { "💬" } else { "🔔" };
-                println!("  {icon} #{ch_name}  {time}");
+                let icon = if is_im { "💬" } else { "🔔" };
+                println!("  {icon} {ch_label}  {time}");
                 println!("     {display}: {first_line}");
             }
         }
