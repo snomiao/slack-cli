@@ -13,7 +13,7 @@ fn sha256_hex(input: &str) -> String {
 }
 
 #[derive(Parser)]
-#[command(name = "sl", about = "Slack CLI")]
+#[command(name = "slack", about = "Slack CLI")]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,

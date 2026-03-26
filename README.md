@@ -1,4 +1,4 @@
-# sl — Slack CLI
+# slack — Slack CLI
 
 A lightweight Slack CLI built in Rust for quick workspace interaction from the terminal.
 
@@ -26,17 +26,17 @@ cargo install --path .
 
 ```sh
 # Activity feed (mentions directed to you)
-sl news
-sl news --limit 5
+slack news
+slack news --limit 5
 
 # Recent messages across joined channels
-sl msgs
+slack msgs
 
 # Search messages
-sl search "deploy"
+slack search "deploy"
 
 # Send a message (requires --confirm hash)
-sl send "#general" "Hello team"
+slack send "#general" "Hello team"
 # Shows preview + confirm hash; rerun with --confirm=<hash> to send
 ```
 
