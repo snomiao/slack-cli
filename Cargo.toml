@@ -3,6 +3,9 @@ name = "slack-cli"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [[bin]]
 name = "slack"
 path = "src/main.rs"
@@ -17,3 +20,8 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "que
 ring = "0.17"
 rustls = { version = "0.23", features = ["ring"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+napi = { version = "3", features = ["tokio_rt", "async"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "1"
