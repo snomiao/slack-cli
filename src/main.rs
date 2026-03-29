@@ -42,7 +42,6 @@ enum Cmd {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let _ = rustls::crypto::ring::default_provider().install_default();
     // Load env: XDG config first, then local .env
     if let Some(home) = std::env::var_os("HOME") {
         dotenvy::from_filename(std::path::Path::new(&home).join(".config/slack-cli/.env.local")).ok();
