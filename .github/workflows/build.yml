@@ -54,6 +54,14 @@ jobs:
       - name: Build native addon
         run: npx napi build --release --target ${{ matrix.target }}
 
+      - name: Rename addon with platform suffix
+        shell: bash
+        run: |
+          # napi outputs slack-cli.node, rename to include target
+          if [ -f slack-cli.node ]; then
+            cp slack-cli.node slack-cli.${{ matrix.target }}.node
+          fi
+
       - name: Build CLI binary
         run: cargo build --release --bin slack --target ${{ matrix.target }}
 
@@ -62,7 +70,7 @@ jobs:
         with:
           name: bindings-${{ matrix.target }}
           path: |
-            slack-cli.*.node
+            slack-cli.${{ matrix.target }}.node
             index.d.ts
           if-no-files-found: error
 

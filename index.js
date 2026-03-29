@@ -3,20 +3,22 @@ const path = require('path');
 const os = require('os');
 
 const TARGETS = {
-  'darwin-arm64': 'slack-cli.darwin-arm64.node',
-  'darwin-x64': 'slack-cli.darwin-x64.node',
-  'linux-x64': 'slack-cli.linux-x64-gnu.node',
-  'linux-arm64': 'slack-cli.linux-arm64-gnu.node',
-  'win32-x64': 'slack-cli.win32-x64-msvc.node',
-  'win32-arm64': 'slack-cli.win32-arm64-msvc.node',
+  'darwin-arm64': 'aarch64-apple-darwin',
+  'darwin-x64': 'x86_64-apple-darwin',
+  'linux-x64': 'x86_64-unknown-linux-gnu',
+  'linux-arm64': 'aarch64-unknown-linux-gnu',
+  'win32-x64': 'x86_64-pc-windows-msvc',
+  'win32-arm64': 'aarch64-pc-windows-msvc',
 };
 
 const key = `${os.platform()}-${os.arch()}`;
-const file = TARGETS[key];
+const target = TARGETS[key];
 
 function tryLoad(name) {
   try { return require(path.join(__dirname, name)); } catch { return null; }
 }
 
-// Try platform-specific name first, then generic fallback
-module.exports = (file && tryLoad(file)) || tryLoad('slack-cli.node');
+// Try target-specific name first, then generic fallback
+const mod = (target && tryLoad(`slack-cli.${target}.node`)) || tryLoad('slack-cli.node');
+if (!mod) throw new Error(`No slack-cli binary found for ${key}`);
+module.exports = mod;
