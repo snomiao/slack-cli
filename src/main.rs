@@ -5,6 +5,11 @@ use clap::{Parser, Subcommand};
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
+fn is_interactive() -> bool {
+    // Returns true only if stderr is a real terminal (not piped/captured)
+    unsafe { libc::isatty(libc::STDERR_FILENO) == 1 }
+}
+
 fn sha256_hex(input: &str) -> String {
     let digest = ring::digest::digest(&ring::digest::SHA256, input.as_bytes());
     let mut s = String::with_capacity(64);
@@ -180,6 +185,11 @@ async fn main() -> Result<()> {
             };
             match confirm.as_deref() {
                 None => {
+                    if !is_interactive() {
+                        eprintln!("Error: --confirm is required when not running interactively.");
+                        eprintln!("Run in a terminal first to see the preview and get the confirm hash.");
+                        std::process::exit(2);
+                    }
                     println!("─── Recent context ──────────────────────────");
                     let messages = ctx["messages"].as_array().cloned().unwrap_or_default();
                     for m in messages.iter().filter(|m| m["subtype"].is_null()).take(5) {

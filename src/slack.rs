@@ -55,9 +55,13 @@ pub async fn search(token: &str, query: &str) -> Result<Value> {
     get(token, "search.messages", &[("query", query), ("sort", "timestamp"), ("sort_dir", "desc")]).await
 }
 
-/// Send a message to a channel or DM
+/// Send a message to a channel or DM, rendered as a markdown block
 pub async fn send(token: &str, channel: &str, text: &str, thread_ts: Option<&str>) -> Result<String> {
-    let mut body = serde_json::json!({ "channel": channel, "text": text });
+    let mut body = serde_json::json!({
+        "channel": channel,
+        "text": text,  // fallback for notifications
+        "blocks": [{ "type": "markdown", "text": text }]
+    });
     if let Some(ts) = thread_ts {
         body["thread_ts"] = Value::String(ts.to_string());
     }

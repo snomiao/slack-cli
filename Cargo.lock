@@ -1396,6 +1396,7 @@ dependencies = [
  "chrono",
  "clap",
  "dotenvy",
+ "libc",
  "napi",
  "napi-build 1.2.1",
  "napi-derive",
