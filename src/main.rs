@@ -163,9 +163,17 @@ async fn main() -> Result<()> {
         Cmd::Send { channel, message, thread, confirm } => {
             let channel_id = slack::resolve_channel(&token, &channel).await?;
             let ctx = slack::history(&token, &channel_id, 5).await?;
-            let ctx_str = serde_json::to_string(&ctx)?;
+            // Hash only stable fields (ts + text) — Slack randomizes block_id on each API call
+            let ctx_stable: String = ctx["messages"].as_array()
+                .cloned().unwrap_or_default()
+                .iter()
+                .filter(|m| m["subtype"].is_null())
+                .take(5)
+                .map(|m| format!("{}:{}", m["ts"].as_str().unwrap_or(""), m["text"].as_str().unwrap_or("")))
+                .collect::<Vec<_>>()
+                .join("\n");
             let hash = {
-                let mut hasher_input = ctx_str.clone();
+                let mut hasher_input = ctx_stable.clone();
                 hasher_input.push_str(&message);
                 let digest = sha256_hex(&hasher_input);
                 digest[..4].to_string()
